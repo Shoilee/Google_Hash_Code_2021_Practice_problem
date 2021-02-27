@@ -1,0 +1,261 @@
+import random
+import numpy as np
+from itertools import combinations
+from collections import defaultdict
+
+# TODO optimize the code based on python good practices
+# TODO FIX PROBLEM: it sticks with the initial ones, does not consider the other combinations
+
+
+def read_file(input_file):
+    file = open(input_file, 'r')
+    line = file.readline()
+    data = line.split()
+
+    M = int(data[0])
+    T_2 = int(data[1])
+    T_3 = int(data[2])
+    T_4 = int(data[3])
+
+    pizza_list = []
+
+    i = 0
+    while line:
+        line = file.readline()
+        data = line.split()
+        if len(data) > 0:
+            pizza = {}
+            pizza['index'] = i
+            pizza['no_of_ingredients'] = data[0]
+            pizza['ingredients'] = data[1:]
+            pizza_list.append(pizza)
+            i += 1
+
+    return M, T_2, T_3, T_4, pizza_list
+
+
+def write_file(output_file, delivery_list):
+    file = open(output_file, 'w')
+    file.write(f"{len(delivery_list)}\n")
+    for pizzas in delivery_list:
+        file.write(f"{len(pizzas)} "+" ".join([str(pizza) for pizza in pizzas])+ "\n")
+    file.close()
+
+
+def conduct_delivery(pizza_list):
+    delivered_pizza = 0
+    delivery_list = []
+
+    #TODO check the limit for available team
+    team_list = [T_2, T_3, T_4]
+
+    while delivered_pizza < M:
+        team_size = random.randint(2, 4)
+
+        if team_size > (M - delivered_pizza):
+            if team_size != 2:
+                team_size -= 1
+            else:
+                break
+
+        per_delivery_list = []
+        for pizza in range(team_size):
+            if len(pizza_list) == 1:
+                per_delivery_list.append(pizza_list.pop(0)["ingredients"])
+                delivered_pizza += 1
+            elif len(pizza_list) == 0:
+                return delivery_list
+            else:
+                per_delivery_list.append(pizza_list.pop(random.randint(0, len(pizza_list) - 1))['ingredients'])
+                delivered_pizza += 1
+
+        delivery_list.append(per_delivery_list)
+
+    return delivery_list
+
+
+def calculate_score(delivery_ingredient_list):
+    """
+        Calculate total score per delivery
+        @:param list of delivery, represented as index
+    """
+    delivery_list = []
+    for delivery in delivery_ingredient_list:
+        ingredient = []
+        for pizza in delivery:
+            pizza_ingredient = list_of_pizza[pizza]['ingredients']
+            ingredient += pizza_ingredient
+        delivery_list.append(len(set(ingredient)))
+    total_score = np.sum(np.array([delivery ** 2 for delivery in delivery_list]))
+
+    return total_score
+
+
+def generate_combination(pizza_list):
+    all_combinations = []
+    for i in range(2, 5):
+        all_combinations += list(combinations(pizza_list, i))
+
+    """
+    for combination in all_combinations:
+        print([pizza['index'] for pizza in combination])
+    """
+    return all_combinations
+
+
+def brute_force(pizza_list, pizza_number):
+    def check_feasibility(delivery):
+        pizza_counter = defaultdict(int)
+        for pizzas in delivery:
+            pizza_counter[len(pizzas)] += 1
+        correct = pizza_counter[2] <= T_2 and pizza_counter[3] <= T_3 and pizza_counter[2] <= T_4
+        return correct
+
+    score = 0
+    final_delivery = []
+
+    all_combinations = generate_combination(pizza_list)
+
+    i = 0
+    while True:
+        possible_delivery = [(all_combinations[i])]
+        pizza_delivered = list(all_combinations[i])
+        j = i + 1
+        while j < len(all_combinations):
+            check = any(item in pizza_delivered for item in all_combinations[j])
+            if not check:
+                possible_delivery.append(all_combinations[j])
+                pizza_delivered += all_combinations[j]
+            j = j + 1
+
+            if len(pizza_delivered) == pizza_number:
+                break
+
+        if check_feasibility(possible_delivery):
+            if calculate_score(possible_delivery) > score:
+                score = calculate_score(possible_delivery)
+                final_delivery = possible_delivery
+                print(f"Acceptable Delivery: "
+                      f"{list(map(lambda dlv: [pizza['index'] for pizza in dlv], final_delivery))} "
+                      f"and score for it {score}")
+
+        i = i+1
+        if i == len(all_combinations):
+            break
+
+    return final_delivery, score
+    # print(list(map(lambda dlv: [pizza['ingredients'] for pizza in dlv], final_delivery)))
+    # print(score)
+
+
+def calculate_matrix(T, P, M):
+    # TODO update algorithm of counting matrix: at this moment do not calculate a all possible combination,
+    #  only consider replacement for the previous best combination
+    """
+    @param: T is team list
+            P is pizza list
+            M size of pizza list
+    """
+
+    def find_best_combination(team_index, pizza_index, previous):
+        if team_list[team_index] == pizza_index+1:
+            n = 0
+            for i in range(pizza_index+1):
+                K[team][available_pizza]['pizzas'].append(pizza_index-n)
+                n += 1
+            K[team][available_pizza]['score'] = calculate_score([K[team][available_pizza]['pizzas']])
+        elif team_list[team_index] > pizza_index+1:
+            pass
+        else:
+            temp = previous.copy()
+            K[team][available_pizza] = previous
+            for i in range(len(previous['pizzas'])):
+                temp['pizzas'] = previous['pizzas'].copy()
+                temp['pizzas'][i] = pizza_index
+                replaced_score = calculate_score([temp['pizzas']])
+                if K[team][available_pizza]['score'] <= replaced_score:
+                    temp['score'] = replaced_score
+                    K[team][available_pizza] = temp
+                    break
+
+    K = [[{'pizzas': [], 'score': 0} for j in range(M)] for i in range(len(T))]
+
+    # Build table K[][] in bottom up manner
+    for team in range(len(T)):
+        for available_pizza in range(M):
+            if available_pizza == 0:
+                previous_pizza = {'pizzas': [], 'score': 0}
+            else:
+                previous_pizza = K[team][available_pizza-1]
+            find_best_combination(team, available_pizza, previous_pizza)
+
+    return K
+
+
+def dynamic_solution():
+    matrix = calculate_matrix(team_list, list_of_pizza, M)
+    delivery_list = []
+    row = len(matrix) - 1
+
+    next_row_score = matrix[len(matrix) - 1][len(matrix[0])-1]['score']
+
+    while row+1:
+        col = len(matrix[row])-1
+        row_score = matrix[row][col]['score']
+        while col and row_score == matrix[row][col]['score']:
+            if row_score >= next_row_score:
+                if len(delivery_list) == 0:
+                    delivery_list.append(matrix[row][col]['pizzas'])
+
+                delivery_list.pop()
+                delivery_list.append(matrix[row][col]['pizzas'])
+
+            else:
+                all_pizzas = [p for d in delivery_list for p in d]
+                if (len(all_pizzas) + len(matrix[row][col]['pizzas'])) <= M:
+                    if not set(matrix[row][col]['pizzas']).intersection(set(all_pizzas)):
+                        delivery_list.append(matrix[row][col]['pizzas'])
+
+            col -= 1
+        next_row_score = row_score
+        row -= 1
+    return delivery_list
+
+
+def print_data():
+    print("Number of pizza available: " + str(M))
+    print("Number of team available with a member of 2: " + str(T_2))
+    print("Number of team available with a member of 3: " + str(T_3))
+    print("Number of team available with a member of 4: " + str(T_4))
+
+    for pizza in list_of_pizza:
+        print("Number of ingredients: " + pizza['no_of_ingredients'] + "--> " + " ".join(pizza['ingredients']))
+
+    print()
+    print()
+
+
+if __name__ == '__main__':
+    input_file = "C:/Users/safat/Downloads/hash_code_2020_practice/b_little_bit_of_everything.in"
+    M, T_2, T_3, T_4, list_of_pizza = read_file(input_file)
+    print_data()
+    # pizza_delivery, _ = brute_force(list_of_pizza, M)
+
+    team_list = []
+    for n in range(T_2):
+        team_list.append(2)
+    for n in range(T_3):
+        team_list.append(3)
+    for n in range(T_4):
+        team_list.append(4)
+
+    matrix = calculate_matrix(team_list, list_of_pizza, M)
+    for team in matrix:
+        print(f"{team}")
+
+    pizza_delivery = dynamic_solution()
+    print(f"The deliveries: {pizza_delivery}"
+          f"total score: {calculate_score(pizza_delivery)}")
+
+    write_file("C:/Users/safat/Downloads/hash_code_2020_practice/a_dynamic output.txt", pizza_delivery)
+
