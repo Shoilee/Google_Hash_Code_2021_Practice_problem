@@ -236,7 +236,7 @@ def print_data():
 
 
 if __name__ == '__main__':
-    input_file = "C:/Users/safat/Downloads/hash_code_2020_practice/b_little_bit_of_everything.in"
+    input_file = "C:/Users/safat/Downloads/hash_code_2020_practice/c_many_ingredients.in"
     M, T_2, T_3, T_4, list_of_pizza = read_file(input_file)
     print_data()
     # pizza_delivery, _ = brute_force(list_of_pizza, M)
@@ -257,5 +257,5 @@ if __name__ == '__main__':
     print(f"The deliveries: {pizza_delivery}"
           f"total score: {calculate_score(pizza_delivery)}")
 
-    write_file("C:/Users/safat/Downloads/hash_code_2020_practice/a_dynamic output.txt", pizza_delivery)
+    write_file("C:/Users/safat/Downloads/hash_code_2020_practice/c_dynamic output.txt", pizza_delivery)
 
