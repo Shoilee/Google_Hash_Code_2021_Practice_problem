@@ -236,6 +236,11 @@ def smart_solution(team_list, list_of_pizza, M):
             delivery_list = [[p['index'] for p in d] for d in delivery_list]
             return delivery_list
 
+        if len(pizza_list) % 400 == 0:
+            # print(f"*************Pizza delivered: {M - len(pizza_list)} ******************")
+            for d in delivery_list:
+                print(" ".join(d[-1]['ingredients']))
+
         team_pizza = []
         ingredient_size = 1
         for pizza in pizza_list:
@@ -243,7 +248,7 @@ def smart_solution(team_list, list_of_pizza, M):
                 team_pizza.append(pizza)
                 ingredient_size = team_pizza[-1]['no_of_ingredients']
             else:
-                if pizza['no_of_ingredients'] >= ingredient_size:
+                if pizza['no_of_ingredients'] >= ingredient_size != 1:
                     team_pizza = find_best_combination(team_pizza, pizza)
 
         delivery_list.append(team_pizza)
@@ -267,7 +272,10 @@ def print_data():
 
 
 if __name__ == '__main__':
-    input_file = "C:/Users/safat/Downloads/hash_code_2020_practice/e_many_teams.in"
+    import os
+    cwd = os.getcwd()
+
+    input_file = cwd + "/hash_code_2020_practice/b_little_bit_of_everything.in"
     M, T_2, T_3, T_4, list_of_pizza = read_file(input_file)
     # print_data()
     # pizza_delivery, _ = brute_force(list_of_pizza, M)
@@ -286,5 +294,5 @@ if __name__ == '__main__':
     print(f"The deliveries: {pizza_delivery} \n"
           f"total score: {calculate_score(pizza_delivery)}")
 
-    write_file("C:/Users/safat/Downloads/hash_code_2020_practice/e_smart output.txt", pizza_delivery)
+    write_file(cwd + "/hash_code_2020_practice/output/b_smart output.txt", pizza_delivery)
 
